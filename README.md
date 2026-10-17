@@ -198,19 +198,6 @@ a worker thread so you don't block the event loop — e.g.
 `loop.run_in_executor(...)`. Keeping the library sync means there's one code
 path to reason about, and consumers bridge to async on their own terms.
 
-## Development
-
-```bash
-python -m venv .venv
-source .venv/bin/activate
-pip install -e ".[dev]"
-
-pytest          # run tests
-ruff check .    # lint
-ruff format .   # format
-mypy            # type-check
-```
-
 ## License
 
 [MIT](LICENSE)
