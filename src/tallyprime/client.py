@@ -30,7 +30,7 @@ Format = Literal["json", "xml"]
 DEFAULT_HOST = "localhost"
 DEFAULT_PORT = 9000
 DEFAULT_TIMEOUT = 30.0
-DEFAULT_FORMAT: Format = "json"
+DEFAULT_FORMAT: Format = "xml"
 
 _CONTENT_TYPES: dict[Format, str] = {
     "json": "application/json",
@@ -44,7 +44,11 @@ class TallyClient:
     Args:
         host: Hostname where the TallyPrime gateway listens.
         port: Port where the TallyPrime gateway listens.
-        format: Wire format to use, ``"json"`` (default) or ``"xml"``.
+        format: Wire format to use. ``"xml"`` (default) works on every
+            TallyPrime release. ``"json"`` is accepted for forward
+            compatibility but currently raises
+            :class:`~tallyprime.exceptions.TallyFormatError`: native JSON needs
+            TallyPrime 7.0+ and its schema is not implemented yet.
         timeout: Request timeout in seconds.
 
     Example:

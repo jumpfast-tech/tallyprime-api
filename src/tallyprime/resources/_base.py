@@ -5,6 +5,8 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
 
+from tallyprime.protocol import decode_response, encode_request
+
 if TYPE_CHECKING:
     from tallyprime.client import TallyClient
 
@@ -24,9 +26,12 @@ class Resource:
     def _request(self, operation: str, payload: Any = None) -> Any:
         """Encode ``payload`` for ``operation``, send it, and decode the reply.
 
-        Wire encoding/decoding (JSON vs XML envelope construction) will live
-        here once the protocol layer is implemented.
+        Dispatches through :mod:`tallyprime.protocol` using the owning client's
+        wire format. Imports return an
+        :class:`~tallyprime.models.ImportResult`; exports return the raw report
+        body.
         """
-        raise NotImplementedError(
-            f"The TallyPrime protocol layer is not implemented yet. operation={operation!r}"
-        )
+        fmt = self._client.format
+        body = encode_request(operation, payload, format=fmt)
+        raw = self._client.send(body, format=fmt)
+        return decode_response(operation, raw, format=fmt)

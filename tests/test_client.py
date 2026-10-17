@@ -21,9 +21,9 @@ def test_base_url_custom() -> None:
         assert client.base_url == "http://tally.local:9999"
 
 
-def test_default_format_is_json() -> None:
+def test_default_format_is_xml() -> None:
     with TallyClient() as client:
-        assert client.format == "json"
+        assert client.format == "xml"
 
 
 def test_resource_namespaces_present() -> None:
@@ -37,9 +37,13 @@ def test_resource_namespaces_present() -> None:
         assert client.reports.trial_balance is not None
 
 
-def test_resource_stub_raises_not_implemented() -> None:
-    with TallyClient() as client, pytest.raises(NotImplementedError):
-        client.ledgers.pull("Cash")
+def _mock_client(handler: "object") -> TallyClient:
+    client = TallyClient()
+    client._client = httpx.Client(
+        base_url=client.base_url,
+        transport=httpx.MockTransport(handler),  # type: ignore[arg-type]
+    )
+    return client
 
 
 def test_send_returns_body() -> None:
@@ -47,8 +51,7 @@ def test_send_returns_body() -> None:
         assert request.headers["Content-Type"].startswith("text/xml")
         return httpx.Response(200, text="<RESPONSE>OK</RESPONSE>")
 
-    client = TallyClient()
-    client._client = httpx.Client(base_url=client.base_url, transport=httpx.MockTransport(handler))
+    client = _mock_client(handler)
     try:
         assert client.send("<ENVELOPE/>", format="xml") == "<RESPONSE>OK</RESPONSE>"
     finally:
@@ -59,8 +62,7 @@ def test_send_raises_on_http_error() -> None:
     def handler(request: httpx.Request) -> httpx.Response:
         return httpx.Response(500, text="boom")
 
-    client = TallyClient()
-    client._client = httpx.Client(base_url=client.base_url, transport=httpx.MockTransport(handler))
+    client = _mock_client(handler)
     try:
         with pytest.raises(TallyResponseError) as exc_info:
             client.send("<ENVELOPE/>")
@@ -74,10 +76,31 @@ def test_send_raises_on_connection_error() -> None:
     def handler(request: httpx.Request) -> httpx.Response:
         raise httpx.ConnectError("refused")
 
-    client = TallyClient()
-    client._client = httpx.Client(base_url=client.base_url, transport=httpx.MockTransport(handler))
+    client = _mock_client(handler)
     try:
         with pytest.raises(TallyConnectionError):
             client.send("<ENVELOPE/>")
     finally:
         client.close()
+
+
+def test_ledger_create_roundtrip() -> None:
+    sent: dict[str, str] = {}
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        sent["body"] = request.content.decode()
+        return httpx.Response(
+            200, text="<RESPONSE><CREATED>1</CREATED><ERRORS>0</ERRORS></RESPONSE>"
+        )
+
+    client = _mock_client(handler)
+    try:
+        result = client.ledgers.create({"NAME": "Cash", "PARENT": "Cash-in-Hand"})
+    finally:
+        client.close()
+
+    assert result.created == 1
+    assert result.ok
+    assert '<LEDGER Action="Create">' in sent["body"]
+    assert "<NAME>Cash</NAME>" in sent["body"]
+    assert "<REPORTNAME>All Masters</REPORTNAME>" in sent["body"]
