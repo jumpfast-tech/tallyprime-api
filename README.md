@@ -1,8 +1,8 @@
 # tallyprime
 
-[![CI](https://github.com/jumpfast-tech/tallyprime-api/actions/workflows/ci.yml/badge.svg)](https://github.com/jumpfast-tech/tallyprime-api/actions/workflows/ci.yml)
-[![PyPI](https://img.shields.io/pypi/v/tallyprime.svg)](https://pypi.org/project/tallyprime/)
-[![Python versions](https://img.shields.io/pypi/pyversions/tallyprime.svg)](https://pypi.org/project/tallyprime/)
+[![CI](https://github.com/jumpfast-tech/tallyprime-api/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/jumpfast-tech/tallyprime-api/actions/workflows/ci.yml)
+[![PyPI](https://img.shields.io/pypi/v/tallyprime)](https://pypi.org/project/tallyprime/)
+[![Python versions](https://img.shields.io/pypi/pyversions/tallyprime)](https://pypi.org/project/tallyprime/)
 
 A Python client for the [TallyPrime](https://tallysolutions.com/) HTTP/XML
 gateway.
