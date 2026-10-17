@@ -23,6 +23,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   accept in place of raw dicts, each with an `extra={}` escape hatch for
   unmodelled Tally fields. `Voucher.inventory_entries` supports inventory
   invoices with nested batch and accounting allocations.
+- Export (`pull`) responses now return an `ExportResult` with traversal helpers
+  (`find_all`, `first`, `texts`, `to_dict`) that are namespace-aware, plus the
+  original XML on `.raw`. Added `parse_amount()` for Tally's Indian-grouped,
+  `Dr`/`Cr`-suffixed number strings.
 
 ### Notes
 - XML is the default wire format and works on all TallyPrime releases.

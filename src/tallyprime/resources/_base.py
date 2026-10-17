@@ -28,8 +28,8 @@ class Resource:
 
         Dispatches through :mod:`tallyprime.protocol` using the owning client's
         wire format. Imports return an
-        :class:`~tallyprime.models.ImportResult`; exports return the raw report
-        body.
+        :class:`~tallyprime.models.ImportResult`; exports return an
+        :class:`~tallyprime.models.ExportResult`.
         """
         fmt = self._client.format
         body = encode_request(operation, payload, format=fmt)

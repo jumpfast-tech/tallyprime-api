@@ -2,7 +2,7 @@
 import pytest
 
 from tallyprime.exceptions import TallyFormatError, TallyImportError
-from tallyprime.models import ImportResult
+from tallyprime.models import ExportResult, ImportResult
 from tallyprime.protocol import decode_response, encode_request
 
 
@@ -116,9 +116,12 @@ def test_decode_import_lineerror_raises() -> None:
     assert isinstance(exc_info.value.result, ImportResult)
 
 
-def test_decode_export_returns_raw() -> None:
+def test_decode_export_returns_export_result() -> None:
     raw = "<ENVELOPE><ACCTSINFO><ACCOUNTNAME>Cash</ACCOUNTNAME></ACCTSINFO></ENVELOPE>"
-    assert decode_response("report.trial_balance", raw, format="xml") == raw
+    result = decode_response("report.trial_balance", raw, format="xml")
+    assert isinstance(result, ExportResult)
+    assert result.raw == raw
+    assert result.texts("ACCOUNTNAME") == ["Cash"]
 
 
 def test_json_encode_raises_format_error() -> None:

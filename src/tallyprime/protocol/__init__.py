@@ -41,7 +41,8 @@ def decode_response(operation: str, raw: str, *, format: str) -> Any:
     """Decode a raw response body for ``operation`` under ``format``.
 
     Imports return an :class:`~tallyprime.models.ImportResult`; exports return
-    the raw report body. See :func:`tallyprime.protocol.xml_codec.decode`.
+    an :class:`~tallyprime.models.ExportResult`. See
+    :func:`tallyprime.protocol.xml_codec.decode`.
     """
     spec = get_spec(operation)
     if format == "xml":

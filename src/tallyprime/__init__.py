@@ -10,7 +10,7 @@ from tallyprime.exceptions import (
     TallyImportError,
     TallyResponseError,
 )
-from tallyprime.models import ImportResult
+from tallyprime.models import ExportResult, ImportResult, parse_amount
 from tallyprime.payloads import (
     BatchAllocation,
     Group,
@@ -26,6 +26,7 @@ from tallyprime.payloads import (
 
 __all__ = [
     "BatchAllocation",
+    "ExportResult",
     "Group",
     "ImportResult",
     "InventoryEntry",
@@ -43,4 +44,5 @@ __all__ = [
     "Unit",
     "Voucher",
     "__version__",
+    "parse_amount",
 ]

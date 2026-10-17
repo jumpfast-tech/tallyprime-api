@@ -35,7 +35,7 @@ from xml.etree import ElementTree as ET
 from xml.sax.saxutils import escape, quoteattr
 
 from tallyprime.exceptions import TallyImportError, TallyResponseError
-from tallyprime.models import ImportResult
+from tallyprime.models import ExportResult, ImportResult
 from tallyprime.protocol.operations import (
     COLLECTION_EXPORT,
     IMPORT_CATEGORIES,
@@ -326,12 +326,12 @@ def decode(spec: OperationSpec, raw: str) -> Any:
 
     Imports return an :class:`~tallyprime.models.ImportResult` (raising
     :class:`~tallyprime.exceptions.TallyImportError` on a reported failure).
-    Exports return the raw report XML unchanged — report schemas vary widely, so
-    structured parsing is intentionally left to the caller.
+    Exports return an :class:`~tallyprime.models.ExportResult` wrapping the
+    parsed tree, with the original XML preserved on ``.raw``.
     """
     if spec.category in IMPORT_CATEGORIES:
         return _decode_import(raw)
-    return raw
+    return ExportResult.from_raw(raw)
 
 
 def _int(root: ET.Element, tag: str) -> int:

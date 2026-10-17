@@ -34,10 +34,20 @@ with TallyClient(host="localhost", port=9000) as client:
         )
     )
 
-    # Pull data — exports return the raw report XML for you to parse
-    cash = client.ledgers.pull("Cash")
+    # Pull data — exports return an ExportResult you can traverse
+    ledgers = client.ledgers.pull_all()
+    for row in ledgers.find_all("LEDGER"):
+        print(row["@NAME"], row.get("PARENT"))
+
     tb = client.reports.trial_balance.pull("20250401", "20250430")
+    tb.raw            # the original XML, always available
+    tb.to_dict()      # the whole response as nested dicts/lists
 ```
+
+Exports vary a lot by report, so `ExportResult` gives you traversal helpers
+(`find_all`, `first`, `texts`, `to_dict`) that work regardless of nesting and
+strip XML namespaces for you. Use `parse_amount("1,29,377.00")` to turn Tally's
+Indian-grouped, `Dr`/`Cr`-suffixed number strings into signed floats.
 
 Every `create`/`alter` also accepts a plain dict of raw Tally tags if you'd
 rather not use the models — `client.ledgers.create({"NAME": "Cash", "PARENT":
