@@ -19,13 +19,21 @@ from tallyprime.protocol import json_codec, xml_codec
 from tallyprime.protocol.operations import get_spec
 
 
-def encode_request(operation: str, payload: Mapping[str, Any] | None, *, format: str) -> str:
+def encode_request(
+    operation: str,
+    payload: Mapping[str, Any] | None,
+    *,
+    format: str,
+    company: str | None = None,
+) -> str:
     """Encode ``operation`` + ``payload`` into a request body for ``format``.
 
     Args:
         operation: A registered operation key, e.g. ``"ledger.create"``.
         payload: The operation's data/control mapping, or ``None``.
         format: ``"xml"`` (implemented) or ``"json"`` (raises until supported).
+        company: Target company (``SVCURRENTCOMPANY``); a ``company`` key in
+            ``payload`` overrides it.
 
     Raises:
         TallyFormatError: If ``format`` is ``"json"`` (not yet implemented) or
@@ -33,7 +41,7 @@ def encode_request(operation: str, payload: Mapping[str, Any] | None, *, format:
     """
     spec = get_spec(operation)
     if format == "xml":
-        return xml_codec.encode(spec, payload)
+        return xml_codec.encode(spec, payload, company)
     return json_codec.encode(spec, payload)
 
 

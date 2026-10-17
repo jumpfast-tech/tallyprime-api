@@ -130,6 +130,9 @@ OPERATIONS.update(
     }
 )
 
+# Companies
+OPERATIONS["company.pull_all"] = OperationSpec(COLLECTION_EXPORT, collection_type="Company")
+
 
 def get_spec(operation: str) -> OperationSpec:
     """Return the :class:`OperationSpec` for ``operation``.

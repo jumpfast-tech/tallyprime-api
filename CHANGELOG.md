@@ -27,6 +27,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   (`find_all`, `first`, `texts`, `to_dict`) that are namespace-aware, plus the
   original XML on `.raw`. Added `parse_amount()` for Tally's Indian-grouped,
   `Dr`/`Cr`-suffixed number strings.
+- Ledger entries support bill-wise and cost-centre breakdowns via
+  `BillAllocation`, `CostCategoryAllocation` and `CostCentreAllocation`.
+- Company support: `TallyClient(company=...)` (mutable) sets `SVCURRENTCOMPANY`
+  on every request, and `client.companies.list()` enumerates loaded companies.
 
 ### Notes
 - XML is the default wire format and works on all TallyPrime releases.

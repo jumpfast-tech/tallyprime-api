@@ -127,3 +127,36 @@ def test_decode_export_returns_export_result() -> None:
 def test_json_encode_raises_format_error() -> None:
     with pytest.raises(TallyFormatError, match="JSON"):
         encode_request("ledger.create", {"NAME": "Cash"}, format="json")
+
+
+def test_company_injected_into_import() -> None:
+    body = encode_request("ledger.create", {"NAME": "Cash"}, format="xml", company="ABC Ltd")
+    assert "<SVCURRENTCOMPANY>ABC Ltd</SVCURRENTCOMPANY>" in body
+
+
+def test_company_injected_into_export() -> None:
+    body = encode_request("ledger.pull_all", None, format="xml", company="ABC Ltd")
+    assert "<SVCURRENTCOMPANY>ABC Ltd</SVCURRENTCOMPANY>" in body
+
+
+def test_company_absent_when_not_set() -> None:
+    body = encode_request("ledger.create", {"NAME": "Cash"}, format="xml")
+    assert "SVCURRENTCOMPANY" not in body
+
+
+def test_company_payload_key_overrides_argument() -> None:
+    body = encode_request(
+        "report.trial_balance",
+        {"from": "20250401", "to": "20250430", "company": "Payload Co"},
+        format="xml",
+        company="Client Co",
+    )
+    assert "<SVCURRENTCOMPANY>Payload Co</SVCURRENTCOMPANY>" in body
+    assert "Client Co" not in body
+
+
+def test_company_pull_all_collection() -> None:
+    body = encode_request("company.pull_all", None, format="xml")
+    assert "<TYPE>Collection</TYPE>" in body
+    assert "<ID>List of Companys</ID>" in body
+    assert "<TYPE>Company</TYPE>" in body

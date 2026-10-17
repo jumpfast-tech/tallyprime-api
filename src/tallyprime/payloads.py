@@ -191,18 +191,74 @@ class Unit(TallyModel):
 # Vouchers
 # --------------------------------------------------------------------------- #
 @dataclass
+class BillAllocation(TallyModel):
+    """A bill-wise allocation inside a ledger entry (``BILLALLOCATIONS.LIST``).
+
+    Present when the ledger maintains balances "bill-by-bill". ``bill_type`` is
+    one of ``"New Ref"``, ``"Agst Ref"``, ``"Advance"`` or ``"On Account"``.
+    ``amount`` follows the same sign convention as the parent ledger entry, and
+    the allocations should sum to the ledger entry's amount.
+    """
+
+    name: str = _req("NAME")
+    bill_type: str | None = _opt("BILLTYPE")
+    amount: str | float | None = _opt("AMOUNT")
+    extra: Mapping[str, Any] = _extra()
+
+
+@dataclass
+class CostCentreAllocation(TallyModel):
+    """A cost centre share inside a cost-category allocation.
+
+    Renders as a ``COSTCENTREALLOCATIONS.LIST`` entry. ``amount`` is the portion
+    of the ledger entry attributed to this cost centre.
+    """
+
+    name: str = _req("NAME")
+    amount: str | float | None = _opt("AMOUNT")
+    extra: Mapping[str, Any] = _extra()
+
+
+@dataclass
+class CostCategoryAllocation(TallyModel):
+    """A cost-category allocation inside a ledger entry.
+
+    Renders as a ``CATEGORYALLOCATIONS.LIST`` block wrapping one or more
+    :class:`CostCentreAllocation` entries. Tally requires this category wrapper
+    even for the single default "Primary Cost Category".
+    """
+
+    category: str = _req("CATEGORY")
+    is_deemed_positive: bool | None = _opt("ISDEEMEDPOSITIVE")
+    cost_centres: list[CostCentreAllocation] = field(
+        default_factory=list, metadata={"tag": "COSTCENTREALLOCATIONS.LIST"}
+    )
+    extra: Mapping[str, Any] = _extra()
+
+
+@dataclass
 class LedgerEntry(TallyModel):
     """One ledger line inside a voucher.
 
     ``amount`` follows Tally's sign convention: **negative = debit, positive =
     credit**. Mark the debit side with ``is_deemed_positive=True`` and the party
     ledger with ``is_party_ledger=True``.
+
+    ``bill_allocations`` break the amount down bill-by-bill (for bill-wise
+    ledgers); ``cost_allocations`` split it across cost centres. Both are
+    optional and each group should sum to ``amount``.
     """
 
     ledger_name: str = _req("LEDGERNAME")
     amount: str | float = _req("AMOUNT")
     is_deemed_positive: bool | None = _opt("ISDEEMEDPOSITIVE")
     is_party_ledger: bool | None = _opt("ISPARTYLEDGER")
+    bill_allocations: list[BillAllocation] = field(
+        default_factory=list, metadata={"tag": "BILLALLOCATIONS.LIST"}
+    )
+    cost_allocations: list[CostCategoryAllocation] = field(
+        default_factory=list, metadata={"tag": "CATEGORYALLOCATIONS.LIST"}
+    )
     extra: Mapping[str, Any] = _extra()
 
 
@@ -282,6 +338,9 @@ class Voucher(TallyModel):
 
 __all__ = [
     "BatchAllocation",
+    "BillAllocation",
+    "CostCategoryAllocation",
+    "CostCentreAllocation",
     "Group",
     "InventoryEntry",
     "Ledger",

@@ -84,6 +84,44 @@ def test_send_raises_on_connection_error() -> None:
         client.close()
 
 
+def test_client_company_flows_into_request() -> None:
+    sent: dict[str, str] = {}
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        sent["body"] = request.content.decode()
+        return httpx.Response(
+            200, text="<RESPONSE><CREATED>1</CREATED><ERRORS>0</ERRORS></RESPONSE>"
+        )
+
+    client = TallyClient(company="ABC Ltd")
+    client._client = httpx.Client(base_url=client.base_url, transport=httpx.MockTransport(handler))
+    try:
+        client.ledgers.create({"NAME": "Cash", "PARENT": "Cash-in-Hand"})
+    finally:
+        client.close()
+    assert "<SVCURRENTCOMPANY>ABC Ltd</SVCURRENTCOMPANY>" in sent["body"]
+
+
+def test_companies_list_returns_export_result() -> None:
+    raw = (
+        "<ENVELOPE><COLLECTION>"
+        '<COMPANY NAME="ABC Ltd"><COMPANYNAME>ABC Ltd</COMPANYNAME></COMPANY>'
+        '<COMPANY NAME="XYZ Ltd"><COMPANYNAME>XYZ Ltd</COMPANYNAME></COMPANY>'
+        "</COLLECTION></ENVELOPE>"
+    )
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(200, text=raw)
+
+    client = TallyClient()
+    client._client = httpx.Client(base_url=client.base_url, transport=httpx.MockTransport(handler))
+    try:
+        result = client.companies.list()
+    finally:
+        client.close()
+    assert result.texts("COMPANYNAME") == ["ABC Ltd", "XYZ Ltd"]
+
+
 def test_ledger_create_roundtrip() -> None:
     sent: dict[str, str] = {}
 

@@ -3,6 +3,9 @@ import httpx
 
 from tallyprime import (
     BatchAllocation,
+    BillAllocation,
+    CostCategoryAllocation,
+    CostCentreAllocation,
     InventoryEntry,
     Ledger,
     LedgerEntry,
@@ -118,6 +121,71 @@ def test_inventory_invoice_encodes_to_xml() -> None:
     assert "<ALLINVENTORYENTRIES.LIST>" in body
     assert "<STOCKITEMNAME>Widget</STOCKITEMNAME>" in body
     assert "<ACCOUNTINGALLOCATIONS.LIST><LEDGERNAME>Sales</LEDGERNAME>" in body
+
+
+def test_ledger_entry_bill_allocations() -> None:
+    entry = LedgerEntry(
+        "ABC Ltd",
+        "-1000.00",
+        is_party_ledger=True,
+        bill_allocations=[BillAllocation("INV-001", bill_type="New Ref", amount="-1000.00")],
+    )
+    payload = entry.to_payload()
+    assert payload["BILLALLOCATIONS.LIST"] == [
+        {"NAME": "INV-001", "BILLTYPE": "New Ref", "AMOUNT": "-1000.00"}
+    ]
+
+
+def test_ledger_entry_cost_allocations_nested() -> None:
+    entry = LedgerEntry(
+        "Marketing Exp",
+        "-1000.00",
+        is_deemed_positive=True,
+        cost_allocations=[
+            CostCategoryAllocation(
+                category="Primary Cost Category",
+                cost_centres=[
+                    CostCentreAllocation("Delhi", "-600.00"),
+                    CostCentreAllocation("Mumbai", "-400.00"),
+                ],
+            )
+        ],
+    )
+    payload = entry.to_payload()
+    cat = payload["CATEGORYALLOCATIONS.LIST"]
+    assert cat == [
+        {
+            "CATEGORY": "Primary Cost Category",
+            "COSTCENTREALLOCATIONS.LIST": [
+                {"NAME": "Delhi", "AMOUNT": "-600.00"},
+                {"NAME": "Mumbai", "AMOUNT": "-400.00"},
+            ],
+        }
+    ]
+
+
+def test_cost_allocations_encode_to_xml() -> None:
+    voucher = Voucher(
+        date="20250401",
+        entries=[
+            LedgerEntry(
+                "Marketing Exp",
+                "-1000.00",
+                is_deemed_positive=True,
+                cost_allocations=[
+                    CostCategoryAllocation(
+                        category="Primary Cost Category",
+                        cost_centres=[CostCentreAllocation("Delhi", "-1000.00")],
+                    )
+                ],
+            )
+        ],
+    )
+    body = encode_request(
+        "voucher.create", {"type": "Payment", **voucher.to_payload()}, format="xml"
+    )
+    assert "<CATEGORYALLOCATIONS.LIST><CATEGORY>Primary Cost Category</CATEGORY>" in body
+    assert "<COSTCENTREALLOCATIONS.LIST><NAME>Delhi</NAME>" in body
 
 
 def test_as_payload_accepts_mapping_and_model() -> None:

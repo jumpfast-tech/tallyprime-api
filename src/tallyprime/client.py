@@ -2,9 +2,9 @@
 """HTTP client for the TallyPrime gateway.
 
 TallyPrime exposes an HTTP endpoint (default ``http://localhost:9000``) that
-accepts request envelopes and returns responses. Modern builds speak JSON;
-all builds speak the classic XML dialect. This client defaults to JSON and
-lets you opt in to XML per-client or per-request.
+accepts request envelopes and returns responses. All builds speak the classic
+XML dialect; TallyPrime 7.0+ adds native JSON. This client defaults to XML
+(works everywhere) and reserves ``format="json"`` for the 7.0+ schema.
 """
 
 from __future__ import annotations
@@ -15,6 +15,7 @@ from typing import Literal
 import httpx
 
 from tallyprime.exceptions import TallyConnectionError, TallyResponseError
+from tallyprime.resources.companies import CompaniesResource
 from tallyprime.resources.masters import (
     GroupsResource,
     LedgersResource,
@@ -49,14 +50,18 @@ class TallyClient:
             compatibility but currently raises
             :class:`~tallyprime.exceptions.TallyFormatError`: native JSON needs
             TallyPrime 7.0+ and its schema is not implemented yet.
+        company: Target company name (``SVCURRENTCOMPANY``) applied to every
+            request. Leave ``None`` to use whichever company is open in the
+            running instance. Mutable via ``client.company = ...``.
         timeout: Request timeout in seconds.
 
     Example:
-        >>> with TallyClient() as client:
+        >>> with TallyClient(company="ABC Ltd") as client:
         ...     ledger = client.ledgers.pull("Cash")
 
     Resource namespaces:
-        ledgers, groups, stock_items, stock_groups, units, vouchers, reports
+        ledgers, groups, stock_items, stock_groups, units, vouchers, reports,
+        companies
     """
 
     def __init__(
@@ -65,11 +70,13 @@ class TallyClient:
         port: int = DEFAULT_PORT,
         *,
         format: Format = DEFAULT_FORMAT,
+        company: str | None = None,
         timeout: float = DEFAULT_TIMEOUT,
     ) -> None:
         self.host = host
         self.port = port
         self.format: Format = format
+        self.company = company
         self.timeout = timeout
         self._client = httpx.Client(base_url=self.base_url, timeout=timeout)
 
@@ -81,6 +88,7 @@ class TallyClient:
         self.units = UnitsResource(self)
         self.vouchers = VouchersResource(self)
         self.reports = ReportsResource(self)
+        self.companies = CompaniesResource(self)
 
     @property
     def base_url(self) -> str:

@@ -32,6 +32,6 @@ class Resource:
         :class:`~tallyprime.models.ExportResult`.
         """
         fmt = self._client.format
-        body = encode_request(operation, payload, format=fmt)
+        body = encode_request(operation, payload, format=fmt, company=self._client.company)
         raw = self._client.send(body, format=fmt)
         return decode_response(operation, raw, format=fmt)

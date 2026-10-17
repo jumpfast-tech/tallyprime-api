@@ -13,6 +13,9 @@ from tallyprime.exceptions import (
 from tallyprime.models import ExportResult, ImportResult, parse_amount
 from tallyprime.payloads import (
     BatchAllocation,
+    BillAllocation,
+    CostCategoryAllocation,
+    CostCentreAllocation,
     Group,
     InventoryEntry,
     Ledger,
@@ -26,6 +29,9 @@ from tallyprime.payloads import (
 
 __all__ = [
     "BatchAllocation",
+    "BillAllocation",
+    "CostCategoryAllocation",
+    "CostCentreAllocation",
     "ExportResult",
     "Group",
     "ImportResult",

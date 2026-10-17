@@ -49,7 +49,9 @@ from tallyprime.protocol.operations import (
 # Keys that carry request control information rather than Tally field data.
 # Resource methods fold identifiers into the payload under these names; the
 # encoder lifts them out before serialising the remaining fields.
-_CONTROL_KEYS = frozenset({"name", "group", "parent", "type", "id", "from", "to", "format"})
+_CONTROL_KEYS = frozenset(
+    {"name", "group", "parent", "type", "id", "from", "to", "format", "company"}
+)
 
 _EXPORT_FORMAT = "$$SysName:XML"
 
@@ -100,22 +102,39 @@ def _fields(payload: Mapping[str, Any] | None) -> dict[str, Any]:
 # --------------------------------------------------------------------------- #
 # Encoders per category
 # --------------------------------------------------------------------------- #
-def encode(spec: OperationSpec, payload: Mapping[str, Any] | None) -> str:
-    """Encode a request for ``spec`` into a TallyPrime XML envelope string."""
+def encode(
+    spec: OperationSpec, payload: Mapping[str, Any] | None, company: str | None = None
+) -> str:
+    """Encode a request for ``spec`` into a TallyPrime XML envelope string.
+
+    ``company`` sets ``SVCURRENTCOMPANY`` on the request so it targets a specific
+    loaded company. A ``company`` key in ``payload`` takes precedence; when
+    neither is given, TallyPrime uses the currently-open company.
+    """
+    effective_company = (payload or {}).get("company") or company
     if spec.category == MASTER_IMPORT:
-        return _encode_master_import(spec, payload)
+        return _encode_master_import(spec, payload, effective_company)
     if spec.category == VOUCHER_IMPORT:
-        return _encode_voucher_import(spec, payload)
+        return _encode_voucher_import(spec, payload, effective_company)
     if spec.category == REPORT_EXPORT:
-        return _encode_report_export(spec, payload)
+        return _encode_report_export(spec, payload, effective_company)
     if spec.category == COLLECTION_EXPORT:
-        return _encode_collection_export(spec, payload)
+        return _encode_collection_export(spec, payload, effective_company)
     if spec.category == OBJECT_EXPORT:
-        return _encode_object_export(spec, payload)
+        return _encode_object_export(spec, payload, effective_company)
     raise TallyResponseError(f"Unsupported operation category: {spec.category!r}")
 
 
-def _encode_master_import(spec: OperationSpec, payload: Mapping[str, Any] | None) -> str:
+def _company_svars(company: str | None) -> str:
+    """Render a ``<STATICVARIABLES>`` block selecting ``company``, or ``""``."""
+    if not company:
+        return ""
+    return f"<STATICVARIABLES>{_render('SVCURRENTCOMPANY', company)}</STATICVARIABLES>"
+
+
+def _encode_master_import(
+    spec: OperationSpec, payload: Mapping[str, Any] | None, company: str | None = None
+) -> str:
     """Build an ``Import Data`` → ``All Masters`` envelope for a master object.
 
     ::
@@ -143,13 +162,15 @@ def _encode_master_import(spec: OperationSpec, payload: Mapping[str, Any] | None
     return (
         "<ENVELOPE><HEADER><TALLYREQUEST>Import Data</TALLYREQUEST></HEADER>"
         "<BODY><IMPORTDATA>"
-        "<REQUESTDESC><REPORTNAME>All Masters</REPORTNAME></REQUESTDESC>"
+        f"<REQUESTDESC><REPORTNAME>All Masters</REPORTNAME>{_company_svars(company)}</REQUESTDESC>"
         f'<REQUESTDATA><TALLYMESSAGE xmlns:UDF="TallyUDF">{message}</TALLYMESSAGE></REQUESTDATA>'
         "</IMPORTDATA></BODY></ENVELOPE>"
     )
 
 
-def _encode_voucher_import(spec: OperationSpec, payload: Mapping[str, Any] | None) -> str:
+def _encode_voucher_import(
+    spec: OperationSpec, payload: Mapping[str, Any] | None, company: str | None = None
+) -> str:
     """Build an ``Import`` → ``Vouchers`` envelope for a voucher object.
 
     ::
@@ -190,11 +211,12 @@ def _encode_voucher_import(spec: OperationSpec, payload: Mapping[str, Any] | Non
     return (
         "<ENVELOPE><HEADER><VERSION>1</VERSION><TALLYREQUEST>Import</TALLYREQUEST>"
         "<TYPE>Data</TYPE><ID>Vouchers</ID></HEADER>"
-        f"<BODY><DESC></DESC><DATA><TALLYMESSAGE>{message}</TALLYMESSAGE></DATA></BODY></ENVELOPE>"
+        f"<BODY><DESC>{_company_svars(company)}</DESC>"
+        f"<DATA><TALLYMESSAGE>{message}</TALLYMESSAGE></DATA></BODY></ENVELOPE>"
     )
 
 
-def _static_variables(payload: Mapping[str, Any] | None) -> str:
+def _static_variables(payload: Mapping[str, Any] | None, company: str | None = None) -> str:
     """Render the ``<STATICVARIABLES>`` block common to every export.
 
     Always sets ``SVEXPORTFORMAT`` to XML. Adds ``SVFROMDATE``/``SVTODATE``
@@ -208,8 +230,8 @@ def _static_variables(payload: Mapping[str, Any] | None) -> str:
         parts.append(_date_var("SVFROMDATE", data["from"]))
     if data.get("to") is not None:
         parts.append(_date_var("SVTODATE", data["to"]))
-    if data.get("company") is not None:
-        parts.append(_render("SVCURRENTCOMPANY", data["company"]))
+    if company:
+        parts.append(_render("SVCURRENTCOMPANY", company))
     return f"<STATICVARIABLES>{''.join(parts)}</STATICVARIABLES>"
 
 
@@ -218,7 +240,9 @@ def _date_var(tag: str, value: Any) -> str:
     return f'<{tag} TYPE="Date">{escape(_scalar(value))}</{tag}>'
 
 
-def _encode_report_export(spec: OperationSpec, payload: Mapping[str, Any] | None) -> str:
+def _encode_report_export(
+    spec: OperationSpec, payload: Mapping[str, Any] | None, company: str | None = None
+) -> str:
     """Build an ``Export`` → report envelope.
 
     ::
@@ -240,11 +264,13 @@ def _encode_report_export(spec: OperationSpec, payload: Mapping[str, Any] | None
     return (
         "<ENVELOPE><HEADER><VERSION>1</VERSION><TALLYREQUEST>Export</TALLYREQUEST>"
         f"<TYPE>Data</TYPE><ID>{escape(spec.report_id)}</ID></HEADER>"
-        f"<BODY><DESC>{_static_variables(payload)}</DESC></BODY></ENVELOPE>"
+        f"<BODY><DESC>{_static_variables(payload, company)}</DESC></BODY></ENVELOPE>"
     )
 
 
-def _encode_collection_export(spec: OperationSpec, payload: Mapping[str, Any] | None) -> str:
+def _encode_collection_export(
+    spec: OperationSpec, payload: Mapping[str, Any] | None, company: str | None = None
+) -> str:
     """Build an ``Export`` → ``Collection`` envelope pulling many masters.
 
     ::
@@ -284,13 +310,15 @@ def _encode_collection_export(spec: OperationSpec, payload: Mapping[str, Any] | 
         "<ENVELOPE><HEADER><VERSION>1</VERSION><TALLYREQUEST>Export</TALLYREQUEST>"
         f"<TYPE>Collection</TYPE><ID>{escape(name)}</ID></HEADER>"
         "<BODY><DESC>"
-        f"<STATICVARIABLES>{_render('SVEXPORTFORMAT', _EXPORT_FORMAT)}</STATICVARIABLES>"
+        f"{_static_variables(None, company)}"
         f"<TDL><TDLMESSAGE>{collection}</TDLMESSAGE></TDL>"
         "</DESC></BODY></ENVELOPE>"
     )
 
 
-def _encode_object_export(spec: OperationSpec, payload: Mapping[str, Any] | None) -> str:
+def _encode_object_export(
+    spec: OperationSpec, payload: Mapping[str, Any] | None, company: str | None = None
+) -> str:
     """Build an ``Export`` → ``Object`` envelope pulling one master by name.
 
     ::
@@ -312,7 +340,7 @@ def _encode_object_export(spec: OperationSpec, payload: Mapping[str, Any] | None
         f"<TYPE>Object</TYPE><SUBTYPE>{escape(spec.subtype)}</SUBTYPE>"
         f'<ID TYPE="Name">{escape(_scalar(name))}</ID></HEADER>'
         "<BODY><DESC>"
-        f"<STATICVARIABLES>{_render('SVEXPORTFORMAT', _EXPORT_FORMAT)}</STATICVARIABLES>"
+        f"{_static_variables(None, company)}"
         "<FETCHLIST><FETCH>Name</FETCH><FETCH>Parent</FETCH></FETCHLIST>"
         "</DESC></BODY></ENVELOPE>"
     )

@@ -18,7 +18,8 @@ pip install tallyprime
 ```python
 from tallyprime import TallyClient, Ledger, Voucher, LedgerEntry
 
-with TallyClient(host="localhost", port=9000) as client:
+# `company` targets a specific loaded company (SVCURRENTCOMPANY) on every request
+with TallyClient(host="localhost", port=9000, company="ABC Ltd") as client:
     # Create a master with a typed model — returns an ImportResult with Tally's counters
     result = client.ledgers.create(Ledger(name="Cash", parent="Cash-in-Hand"))
     assert result.ok and result.created == 1
@@ -40,8 +41,11 @@ with TallyClient(host="localhost", port=9000) as client:
         print(row["@NAME"], row.get("PARENT"))
 
     tb = client.reports.trial_balance.pull("20250401", "20250430")
-    tb.raw            # the original XML, always available
-    tb.to_dict()      # the whole response as nested dicts/lists
+    tb.raw  # the original XML, always available
+    tb.to_dict()  # the whole response as nested dicts/lists
+
+    # List the companies loaded in the running instance
+    companies = client.companies.list().texts("COMPANYNAME")
 ```
 
 Exports vary a lot by report, so `ExportResult` gives you traversal helpers
