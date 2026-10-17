@@ -74,6 +74,25 @@ keys → attributes) documented on `tallyprime.protocol.xml_codec`.
 reference and the list of fields still needing verification against a live
 instance.
 
+### Concurrency
+
+The client is **synchronous by design** — there is no async client. Every call
+is a single blocking HTTP round-trip, so if you need to run many in parallel,
+put a thread pool over the client (the connection pool is thread-safe):
+
+```python
+from concurrent.futures import ThreadPoolExecutor
+
+with ThreadPoolExecutor(max_workers=8) as pool:
+    results = list(pool.map(client.ledgers.create, ledgers))
+```
+
+If your application is itself async (FastAPI, aiohttp, …), call the client from
+a worker thread so you don't block the event loop — e.g.
+`await anyio.to_thread.run_sync(client.ledgers.create, ledger)` or
+`loop.run_in_executor(...)`. Keeping the library sync means there's one code
+path to reason about, and consumers bridge to async on their own terms.
+
 ## Development
 
 ```bash
