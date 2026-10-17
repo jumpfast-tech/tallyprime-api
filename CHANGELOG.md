@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.1] - 2026-10-18
+
 ### Added
 - Initial package scaffolding.
 - `TallyClient` with resource namespaces: `ledgers`, `groups`, `stock_items`,
