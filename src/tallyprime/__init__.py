@@ -11,14 +11,32 @@ from tallyprime.exceptions import (
     TallyResponseError,
 )
 from tallyprime.models import ImportResult
+from tallyprime.payloads import (
+    Group,
+    Ledger,
+    LedgerEntry,
+    StockGroup,
+    StockItem,
+    TallyModel,
+    Unit,
+    Voucher,
+)
 
 __all__ = [
+    "Group",
     "ImportResult",
+    "Ledger",
+    "LedgerEntry",
+    "StockGroup",
+    "StockItem",
     "TallyClient",
     "TallyConnectionError",
     "TallyError",
     "TallyFormatError",
     "TallyImportError",
+    "TallyModel",
     "TallyResponseError",
+    "Unit",
+    "Voucher",
     "__version__",
 ]

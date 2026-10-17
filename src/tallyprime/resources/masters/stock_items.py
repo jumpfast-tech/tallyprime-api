@@ -3,22 +3,22 @@
 
 from __future__ import annotations
 
-from collections.abc import Mapping
 from typing import Any
 
+from tallyprime.payloads import PayloadLike, as_payload
 from tallyprime.resources._base import Resource
 
 
 class StockItemsResource(Resource):
     """Create, modify, delete and read stock item masters."""
 
-    def create(self, data: Mapping[str, Any]) -> Any:
-        """Create a new stock item."""
-        return self._request("stock_item.create", data)
+    def create(self, data: PayloadLike) -> Any:
+        """Create a stock item from a :class:`~tallyprime.payloads.StockItem` or dict."""
+        return self._request("stock_item.create", as_payload(data))
 
-    def alter(self, name: str, data: Mapping[str, Any]) -> Any:
+    def alter(self, name: str, data: PayloadLike) -> Any:
         """Alter an existing stock item identified by ``name``."""
-        return self._request("stock_item.alter", {"name": name, **data})
+        return self._request("stock_item.alter", {"name": name, **as_payload(data)})
 
     def delete(self, name: str) -> Any:
         """Delete the stock item identified by ``name``."""

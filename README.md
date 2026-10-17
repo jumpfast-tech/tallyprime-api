@@ -16,26 +16,31 @@ pip install tallyprime
 ## Usage
 
 ```python
-from tallyprime import TallyClient
+from tallyprime import TallyClient, Ledger, Voucher, LedgerEntry
 
 with TallyClient(host="localhost", port=9000) as client:
-    # Create a master — returns an ImportResult with Tally's counters
-    result = client.ledgers.create({"NAME": "Cash", "PARENT": "Cash-in-Hand"})
+    # Create a master with a typed model — returns an ImportResult with Tally's counters
+    result = client.ledgers.create(Ledger(name="Cash", parent="Cash-in-Hand"))
     assert result.ok and result.created == 1
 
     # Create a voucher (amount sign convention: negative = debit, positive = credit)
-    client.vouchers.sales.create({
-        "DATE": "20250401",
-        "LEDGERENTRIES.LIST": [
-            {"LEDGERNAME": "ABC Ltd", "ISDEEMEDPOSITIVE": True, "AMOUNT": "-100.00"},
-            {"LEDGERNAME": "Sales", "ISDEEMEDPOSITIVE": False, "AMOUNT": "100.00"},
+    client.vouchers.sales.create(Voucher(
+        date="20250401",
+        entries=[
+            LedgerEntry("ABC Ltd", "-100.00", is_deemed_positive=True, is_party_ledger=True),
+            LedgerEntry("Sales", "100.00"),
         ],
-    })
+    ))
 
     # Pull data — exports return the raw report XML for you to parse
     cash = client.ledgers.pull("Cash")
     tb = client.reports.trial_balance.pull("20250401", "20250430")
 ```
+
+Every `create`/`alter` also accepts a plain dict of raw Tally tags if you'd
+rather not use the models — `client.ledgers.create({"NAME": "Cash", "PARENT":
+"Cash-in-Hand"})`. Models carry an `extra={...}` escape hatch for any Tally
+field not modelled explicitly.
 
 By default the client talks to `http://localhost:9000`, which is where
 TallyPrime exposes its gateway when "Enable ODBC/HTTP" is turned on.

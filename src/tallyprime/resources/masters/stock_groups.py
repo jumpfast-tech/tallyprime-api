@@ -3,22 +3,22 @@
 
 from __future__ import annotations
 
-from collections.abc import Mapping
 from typing import Any
 
+from tallyprime.payloads import PayloadLike, as_payload
 from tallyprime.resources._base import Resource
 
 
 class StockGroupsResource(Resource):
     """Create, modify, delete and read stock group masters."""
 
-    def create(self, data: Mapping[str, Any]) -> Any:
-        """Create a new stock group."""
-        return self._request("stock_group.create", data)
+    def create(self, data: PayloadLike) -> Any:
+        """Create a stock group from a :class:`~tallyprime.payloads.StockGroup` or dict."""
+        return self._request("stock_group.create", as_payload(data))
 
-    def alter(self, name: str, data: Mapping[str, Any]) -> Any:
+    def alter(self, name: str, data: PayloadLike) -> Any:
         """Alter an existing stock group identified by ``name``."""
-        return self._request("stock_group.alter", {"name": name, **data})
+        return self._request("stock_group.alter", {"name": name, **as_payload(data)})
 
     def delete(self, name: str) -> Any:
         """Delete the stock group identified by ``name``."""

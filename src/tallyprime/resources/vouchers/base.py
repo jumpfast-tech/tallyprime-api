@@ -3,9 +3,9 @@
 
 from __future__ import annotations
 
-from collections.abc import Mapping
 from typing import TYPE_CHECKING, Any
 
+from tallyprime.payloads import PayloadLike, as_payload
 from tallyprime.resources._base import Resource
 
 if TYPE_CHECKING:
@@ -24,15 +24,15 @@ class VoucherTypeResource(Resource):
         super().__init__(client)
         self.voucher_type = voucher_type
 
-    def create(self, data: Mapping[str, Any]) -> Any:
-        """Create a new voucher of this type."""
-        return self._request("voucher.create", {"type": self.voucher_type, **data})
+    def create(self, data: PayloadLike) -> Any:
+        """Create a voucher from a :class:`~tallyprime.payloads.Voucher` or dict."""
+        return self._request("voucher.create", {"type": self.voucher_type, **as_payload(data)})
 
-    def alter(self, voucher_id: str, data: Mapping[str, Any]) -> Any:
+    def alter(self, voucher_id: str, data: PayloadLike) -> Any:
         """Alter an existing voucher identified by ``voucher_id``."""
         return self._request(
             "voucher.alter",
-            {"type": self.voucher_type, "id": voucher_id, **data},
+            {"type": self.voucher_type, "id": voucher_id, **as_payload(data)},
         )
 
     def delete(self, voucher_id: str) -> Any:

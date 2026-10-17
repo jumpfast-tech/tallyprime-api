@@ -3,22 +3,22 @@
 
 from __future__ import annotations
 
-from collections.abc import Mapping
 from typing import Any
 
+from tallyprime.payloads import PayloadLike, as_payload
 from tallyprime.resources._base import Resource
 
 
 class LedgersResource(Resource):
     """Create, modify, delete and read ledger masters."""
 
-    def create(self, data: Mapping[str, Any]) -> Any:
-        """Create a new ledger."""
-        return self._request("ledger.create", data)
+    def create(self, data: PayloadLike) -> Any:
+        """Create a new ledger from a :class:`~tallyprime.payloads.Ledger` or dict."""
+        return self._request("ledger.create", as_payload(data))
 
-    def alter(self, name: str, data: Mapping[str, Any]) -> Any:
+    def alter(self, name: str, data: PayloadLike) -> Any:
         """Alter an existing ledger identified by ``name``."""
-        return self._request("ledger.alter", {"name": name, **data})
+        return self._request("ledger.alter", {"name": name, **as_payload(data)})
 
     def delete(self, name: str) -> Any:
         """Delete the ledger identified by ``name``."""

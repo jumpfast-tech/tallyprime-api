@@ -18,6 +18,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `TallyConnectionError`, `TallyResponseError`, `TallyImportError`,
   `TallyFormatError`.
 - `docs/api-wire-formats.md` reference for the TallyPrime XML/JSON dialect.
+- Typed payload models (`Ledger`, `Group`, `StockItem`, `StockGroup`, `Unit`,
+  `Voucher`, `LedgerEntry`) that resources accept in place of raw dicts, each
+  with an `extra={}` escape hatch for unmodelled Tally fields.
 
 ### Notes
 - XML is the default wire format and works on all TallyPrime releases.
