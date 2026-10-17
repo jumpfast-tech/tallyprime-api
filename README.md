@@ -201,3 +201,7 @@ path to reason about, and consumers bridge to async on their own terms.
 ## License
 
 [MIT](LICENSE)
+
+## Contact
+
+Created by JumpFast Technologies. Email: [info@jumpfast.tech](mailto:info@jumpfast.tech)
