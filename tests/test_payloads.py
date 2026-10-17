@@ -1,8 +1,17 @@
 # SPDX-License-Identifier: MIT
 import httpx
 
-from tallyprime import Ledger, LedgerEntry, TallyClient, Unit, Voucher
+from tallyprime import (
+    BatchAllocation,
+    InventoryEntry,
+    Ledger,
+    LedgerEntry,
+    TallyClient,
+    Unit,
+    Voucher,
+)
 from tallyprime.payloads import as_payload
+from tallyprime.protocol import encode_request
 
 
 def test_ledger_to_payload_scalars() -> None:
@@ -73,6 +82,42 @@ def test_voucher_entries_become_repeated_blocks() -> None:
         },
         {"LEDGERNAME": "Sales", "AMOUNT": "100.00", "ISDEEMEDPOSITIVE": False},
     ]
+
+
+def test_inventory_entry_nested_allocations() -> None:
+    entry = InventoryEntry(
+        stock_item_name="Widget",
+        rate="100.00/Nos",
+        amount="1000.00",
+        actual_qty="10 Nos",
+        billed_qty="10 Nos",
+        batch_allocations=[BatchAllocation(godown_name="Main", actual_qty="10 Nos")],
+        accounting_allocations=[LedgerEntry("Sales", "1000.00")],
+    )
+    payload = entry.to_payload()
+    assert payload["STOCKITEMNAME"] == "Widget"
+    assert payload["BATCHALLOCATIONS.LIST"] == [{"GODOWNNAME": "Main", "ACTUALQTY": "10 Nos"}]
+    assert payload["ACCOUNTINGALLOCATIONS.LIST"] == [{"LEDGERNAME": "Sales", "AMOUNT": "1000.00"}]
+
+
+def test_inventory_invoice_encodes_to_xml() -> None:
+    voucher = Voucher(
+        date="20250401",
+        is_invoice=True,
+        entries=[LedgerEntry("ABC Ltd", "-1000.00", is_deemed_positive=True, is_party_ledger=True)],
+        inventory_entries=[
+            InventoryEntry(
+                stock_item_name="Widget",
+                amount="1000.00",
+                accounting_allocations=[LedgerEntry("Sales", "1000.00")],
+            )
+        ],
+    )
+    body = encode_request("voucher.create", {"type": "Sales", **voucher.to_payload()}, format="xml")
+    assert "<ISINVOICE>Yes</ISINVOICE>" in body
+    assert "<ALLINVENTORYENTRIES.LIST>" in body
+    assert "<STOCKITEMNAME>Widget</STOCKITEMNAME>" in body
+    assert "<ACCOUNTINGALLOCATIONS.LIST><LEDGERNAME>Sales</LEDGERNAME>" in body
 
 
 def test_as_payload_accepts_mapping_and_model() -> None:

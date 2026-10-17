@@ -12,7 +12,9 @@ from tallyprime.exceptions import (
 )
 from tallyprime.models import ImportResult
 from tallyprime.payloads import (
+    BatchAllocation,
     Group,
+    InventoryEntry,
     Ledger,
     LedgerEntry,
     StockGroup,
@@ -23,8 +25,10 @@ from tallyprime.payloads import (
 )
 
 __all__ = [
+    "BatchAllocation",
     "Group",
     "ImportResult",
+    "InventoryEntry",
     "Ledger",
     "LedgerEntry",
     "StockGroup",

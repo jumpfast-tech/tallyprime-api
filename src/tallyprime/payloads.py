@@ -207,21 +207,70 @@ class LedgerEntry(TallyModel):
 
 
 @dataclass
+class BatchAllocation(TallyModel):
+    """A batch/godown allocation inside an inventory entry.
+
+    Used when a stock item is tracked by batch or stored across godowns. The
+    quantity fields (``actual_qty``, ``billed_qty``) are passed through verbatim
+    — Tally expects them with the unit, e.g. ``"10 Nos"``.
+    """
+
+    godown_name: str | None = _opt("GODOWNNAME")
+    batch_name: str | None = _opt("BATCHNAME")
+    amount: str | float | None = _opt("AMOUNT")
+    actual_qty: str | None = _opt("ACTUALQTY")
+    billed_qty: str | None = _opt("BILLEDQTY")
+    extra: Mapping[str, Any] = _extra()
+
+
+@dataclass
+class InventoryEntry(TallyModel):
+    """One stock line inside an inventory (invoice) voucher.
+
+    Renders as an ``ALLINVENTORYENTRIES.LIST`` block. ``rate`` carries the unit,
+    e.g. ``"100.00/Nos"``; ``amount`` follows the voucher sign convention
+    (negative = debit, positive = credit).
+
+    ``accounting_allocations`` are the ledger postings this stock line maps to
+    (the sales/purchase ledger split), reusing :class:`LedgerEntry`.
+    ``batch_allocations`` pin the line to batches/godowns. A plain item line can
+    omit both.
+    """
+
+    stock_item_name: str = _req("STOCKITEMNAME")
+    is_deemed_positive: bool | None = _opt("ISDEEMEDPOSITIVE")
+    rate: str | None = _opt("RATE")
+    amount: str | float | None = _opt("AMOUNT")
+    actual_qty: str | None = _opt("ACTUALQTY")
+    billed_qty: str | None = _opt("BILLEDQTY")
+    batch_allocations: list[BatchAllocation] = field(
+        default_factory=list, metadata={"tag": "BATCHALLOCATIONS.LIST"}
+    )
+    accounting_allocations: list[LedgerEntry] = field(
+        default_factory=list, metadata={"tag": "ACCOUNTINGALLOCATIONS.LIST"}
+    )
+    extra: Mapping[str, Any] = _extra()
+
+
+@dataclass
 class Voucher(TallyModel):
     """A voucher (transaction).
 
     The voucher *type* comes from the resource namespace you call
     (``client.vouchers.sales`` → ``Sales``), so it is not set on the model.
     ``date`` accepts Tally's ``YYYYMMDD`` or ``DD-Mon-YYYY`` forms. Debit and
-    credit totals across ``entries`` must balance.
+    credit totals must balance.
 
-    For inventory invoices, add ``ALLINVENTORYENTRIES.LIST`` via ``extra`` until
-    a dedicated model exists.
+    Use ``entries`` for an accounting voucher. For an inventory invoice set
+    ``is_invoice=True`` and populate ``inventory_entries`` (each
+    :class:`InventoryEntry` carries its own accounting allocations); the party
+    ledger still goes in ``entries``.
     """
 
     date: str = _req("DATE")
-    entries: list[LedgerEntry] = field(
-        default_factory=list, metadata={"tag": "LEDGERENTRIES.LIST"}
+    entries: list[LedgerEntry] = field(default_factory=list, metadata={"tag": "LEDGERENTRIES.LIST"})
+    inventory_entries: list[InventoryEntry] = field(
+        default_factory=list, metadata={"tag": "ALLINVENTORYENTRIES.LIST"}
     )
     voucher_number: str | int | None = _opt("VOUCHERNUMBER")
     narration: str | None = _opt("NARRATION")
@@ -232,7 +281,9 @@ class Voucher(TallyModel):
 
 
 __all__ = [
+    "BatchAllocation",
     "Group",
+    "InventoryEntry",
     "Ledger",
     "LedgerEntry",
     "PayloadLike",

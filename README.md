@@ -24,13 +24,15 @@ with TallyClient(host="localhost", port=9000) as client:
     assert result.ok and result.created == 1
 
     # Create a voucher (amount sign convention: negative = debit, positive = credit)
-    client.vouchers.sales.create(Voucher(
-        date="20250401",
-        entries=[
-            LedgerEntry("ABC Ltd", "-100.00", is_deemed_positive=True, is_party_ledger=True),
-            LedgerEntry("Sales", "100.00"),
-        ],
-    ))
+    client.vouchers.sales.create(
+        Voucher(
+            date="20250401",
+            entries=[
+                LedgerEntry("ABC Ltd", "-100.00", is_deemed_positive=True, is_party_ledger=True),
+                LedgerEntry("Sales", "100.00"),
+            ],
+        )
+    )
 
     # Pull data — exports return the raw report XML for you to parse
     cash = client.ledgers.pull("Cash")
